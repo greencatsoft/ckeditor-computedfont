@@ -261,7 +261,7 @@
             // Gets the list of fonts from the settings.
 			var names = config.font_names.split( ';' );
             var sizes = config.fontSize_sizes.split( ';' ).map( function( v ) {
-            	return [ v, '/', v, config.fontSize_unit ].join() } );
+            	return [ v, '/', v, config.fontSize_unit ].join( '' ) } );
 
 			addCombo( editor, 'Font', 'family', editor.lang.font, names, config.font_defaultLabel, config.font_style, 30 );
 			addCombo( editor, 'FontSize', 'size', editor.lang.font.fontSize, sizes, config.fontSize_defaultLabel, config.fontSize_style, 40 );
