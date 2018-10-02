@@ -108,13 +108,53 @@
 			},
 
 			onClick: function( value ) {
+				var style = styles[ value ];
+				var previousValue = this.getValue();
+				var previousStyle = previousValue && value != previousValue ? styles[ previousValue ] : undefined;
+				var isDefault = value == this.defaultValue;
+
+				if ( style && comboName == 'Font' && editor.config.font_blockWhileLoadingFont ) {
+				    // Use an arbitrary font size to check if the font is loaded.
+				    var font = '12pt ' + style._.definition.name;
+
+				    if ( document.fonts.check( font ) ) {
+                        this.applyStyle( style, previousStyle, isDefault );
+                    } else {
+				        var that = this;
+
+				        editor.fire( 'fontLoading', { font: style._.definition.name } );
+
+                        CKEDITOR.tools.setTimeout( function() {
+                            editor.setReadOnly( true );
+
+                            document.fonts.load( font ).then(
+                                function() {
+                                    editor.setReadOnly( false );
+
+                                    that.applyStyle( style, previousStyle, isDefault );
+
+                                    editor.fire( 'fontLoaded', { font: style._.definition.name } );
+                                },
+                                function() {
+                                    editor.setReadOnly( false );
+
+                                    editor.fire( 'fontLoadingFailed', { font: style._.definition.name } );
+                                }).finally(
+                                function() {
+                                    editor.fire( 'fontLoadingComplete', { font: style._.definition.name } );
+                            });
+                        }, 0 );
+                    }
+				} else {
+                    this.applyStyle( style, previousStyle, isDefault );
+                }
+			},
+
+			applyStyle: function( style, previousStyle, isDefault ) {
 				editor.focus();
 				editor.fire( 'saveSnapshot' );
 
-				var previousValue = this.getValue(),
-					style = styles[ value ],
-					previousStyle,
-					range,
+				var range,
 					path,
 					matching,
 					startBoundary,
@@ -124,8 +164,7 @@
 
 				// When applying one style over another, first remove the previous one (https://dev.ckeditor.com/ticket/12403).
 				// NOTE: This is only a temporary fix. It will be moved to the styles system (https://dev.ckeditor.com/ticket/12687).
-				if ( previousValue && value != previousValue ) {
-					previousStyle = styles[ previousValue ];
+				if ( previousStyle ) {
 					range = editor.getSelection().getRanges()[ 0 ];
 
 					// If the range is collapsed we can't simply use the editor.removeStyle method
@@ -174,7 +213,7 @@
 					}
 				}
 
-				if ( value === this.defaultValue ) {
+				if ( isDefault ) {
 					if ( previousStyle ) {
 						editor.removeStyle( previousStyle );
 					}
@@ -194,7 +233,7 @@
 
                     if ( elements.length > 0 ) {
                         var element = elements[ 0 ];
-                        var style = getComputedStyle( element.$ );
+                        var style = element.getComputedStyle();
 
                         // Check if the element is removable by any of
                         // the styles.
@@ -310,6 +349,14 @@ CKEDITOR.config.font_names = 'Arial/Arial, Helvetica, sans-serif;' +
  * @member CKEDITOR.config
  */
 CKEDITOR.config.font_defaultLabel = '';
+
+/**
+ * Whether or not to block editing while used webfont is being loaded.
+ *
+ * @cfg {Boolean} [font_blockWhileLoadingFont=false]
+ * @member CKEDITOR.config
+ */
+CKEDITOR.config.font_blockWhileLoadingFont = false;
 
 /**
  * The style definition to be used to apply the font in the text.
