@@ -114,40 +114,40 @@
 				var isDefault = value == this.defaultValue;
 
 				if ( style && comboName == 'Font' && editor.config.font_blockWhileLoadingFont ) {
-				    // Use an arbitrary font size to check if the font is loaded.
-				    var font = '12pt ' + style._.definition.name;
+					// Use an arbitrary font size to check if the font is loaded.
+					var font = '12pt ' + style._.definition.name;
 
-				    if ( document.fonts.check( font ) ) {
-                        this.applyStyle( style, previousStyle, isDefault );
-                    } else {
-				        var that = this;
+					if ( document.fonts.check( font ) ) {
+						this.applyStyle( style, previousStyle, isDefault );
+					} else {
+						var that = this;
 
-				        editor.fire( 'fontLoading', { font: style._.definition.name } );
+						editor.fire( 'fontLoading', { font: style._.definition.name } );
 
-                        CKEDITOR.tools.setTimeout( function() {
-                            editor.setReadOnly( true );
+						CKEDITOR.tools.setTimeout( function() {
+							editor.setReadOnly( true );
 
-                            document.fonts.load( font ).then(
-                                function() {
-                                    editor.setReadOnly( false );
+							document.fonts.load( font ).then(
+								function() {
+									editor.setReadOnly( false );
 
-                                    that.applyStyle( style, previousStyle, isDefault );
+									that.applyStyle( style, previousStyle, isDefault );
 
-                                    editor.fire( 'fontLoaded', { font: style._.definition.name } );
-                                },
-                                function() {
-                                    editor.setReadOnly( false );
+									editor.fire( 'fontLoaded', { font: style._.definition.name } );
+								},
+								function() {
+									editor.setReadOnly( false );
 
-                                    editor.fire( 'fontLoadingFailed', { font: style._.definition.name } );
-                                }).finally(
-                                function() {
-                                    editor.fire( 'fontLoadingComplete', { font: style._.definition.name } );
-                            });
-                        }, 0 );
-                    }
+									editor.fire( 'fontLoadingFailed', { font: style._.definition.name } );
+								}).finally(
+								function() {
+									editor.fire( 'fontLoadingComplete', { font: style._.definition.name } );
+							});
+						}, 0 );
+					}
 				} else {
-                    this.applyStyle( style, previousStyle, isDefault );
-                }
+					this.applyStyle( style, previousStyle, isDefault );
+				}
 			},
 
 			applyStyle: function( style, previousStyle, isDefault ) {
@@ -231,30 +231,30 @@
 					var elementPath = ev.data.path,
 						elements = elementPath.elements;
 
-                    if ( elements.length > 0 ) {
-                        var element = elements[ 0 ];
-                        var style = getComputedStyle(element.$);
+					if ( elements.length > 0 ) {
+						var element = elements[ 0 ];
+						var style = getComputedStyle(element.$);
 
-                        // Check if the element is removable by any of
-                        // the styles.
-                        for ( var value in styles ) {
-                            if ( styles[ value ].checkStyleMatch( element, style, true, editor ) ) {
-                                if ( value != currentValue )
-                                    this.setValue( value );
-                                return;
-                            }
-                        }
+						// Check if the element is removable by any of
+						// the styles.
+						for ( var value in styles ) {
+							if ( styles[ value ].checkStyleMatch( element, style, true, editor ) ) {
+								if ( value != currentValue )
+									this.setValue( value );
+								return;
+							}
+						}
 
-                        var value = styleDefinition.getStyleValue( style );
+						var value = styleDefinition.getStyleValue( style );
 
-                        if ( value ) {
-                            this.setValue( '', value );
-                            return;
-                        }
-                    }
+						if ( value ) {
+							this.setValue( '', value );
+							return;
+						}
+					}
 
-                    // If no styles match, just empty it.
-                    this.setValue( '', defaultLabel );
+					// If no styles match, just empty it.
+					this.setValue( '', defaultLabel );
 				}, this );
 			},
 
@@ -297,10 +297,10 @@
 		init: function( editor ) {
 			var config = editor.config;
 
-            // Gets the list of fonts from the settings.
+			// Gets the list of fonts from the settings.
 			var names = config.font_names.split( ';' );
-            var sizes = config.fontSize_sizes.split( ';' ).map( function( v ) {
-            	return [ v, '/', v ].join( '' ) } );
+			var sizes = config.fontSize_sizes.split( ';' ).map( function( v ) {
+				return [ v, '/', v ].join( '' ) } );
 
 			addCombo( editor, 'Font', 'family', editor.lang.computedfont, names, config.font_defaultLabel, config.font_style, 30 );
 			addCombo( editor, 'FontSize', 'size', editor.lang.computedfont.fontSize, sizes, config.fontSize_defaultLabel, config.fontSize_style, 40 );
@@ -404,7 +404,7 @@ CKEDITOR.config.font_detect_fallback = 'monospace';
  *			element:		'span',
  *			styles:			{ 'font-family': '#(family)' },
  *			overrides:		[ { element: 'font', attributes: { 'face': null } } ]
- *     };
+ *	 };
  *
  * @cfg {Object} [font_style=see example]
  * @member CKEDITOR.config
@@ -415,15 +415,15 @@ CKEDITOR.config.font_style = {
 	overrides: [ {
 		element: 'font', attributes: { 'face': null }
 	} ],
-    getStyleValue: function( style ) {
+	getStyleValue: function( style ) {
    		var fontset = style.fontFamily.split( ',' );
 
-    	if ( fontset.length > 1 ) {
+		if ( fontset.length > 1 ) {
 			return CKEDITOR.config.font_detect ? this.detectFont( fontset ) : fontset[ 0 ];
-    	}
+		}
 
-        return style.fontFamily;
-    },
+		return style.fontFamily;
+	},
 	detectFont: function( candidates ) {
 		// Adapted from https://www.kirupa.com/html5/detect_whether_font_is_installed.htm
 
@@ -444,10 +444,10 @@ CKEDITOR.config.font_style = {
 			context.font = [size, 'px ', fallback].join( '' );
 
 			var baseline = context.measureText(text).width;
-     
+	 
 			context.font = [size, 'px "', font, '", ', fallback].join( '' );
 
-	    	var actual = context.measureText(text).width;
+			var actual = context.measureText(text).width;
 
 			return baseline != actual;
 		}
@@ -503,27 +503,27 @@ CKEDITOR.config.fontSize_style = {
 	overrides: [ {
 		element: 'font', attributes: { 'size': null }
 	} ],
-    getStyleValue: function( style ) {
-        var size = style.fontSize;
+	getStyleValue: function( style ) {
+		var size = style.fontSize;
 
-        return CKEDITOR.tools.convertToPx( size );
-    }
+		return CKEDITOR.tools.convertToPx( size );
+	}
 };
 
 CKEDITOR.computedStyle = CKEDITOR.tools.createClass({
-    base: CKEDITOR.style,
+	base: CKEDITOR.style,
 	$: function( styleDefinition, variablesValues ) {
 		this.base( styleDefinition, variablesValues );
 	},
-    proto: {
-        checkStyleMatch: function( element, style, fullMatch, editor ) {
-            if (this.checkElementMatch( element, fullMatch, editor )) {
-                return true;
-            } else {
-                var def = this._.definition;
+	proto: {
+		checkStyleMatch: function( element, style, fullMatch, editor ) {
+			if (this.checkElementMatch( element, fullMatch, editor )) {
+				return true;
+			} else {
+				var def = this._.definition;
 
-                return def.name == def.getStyleValue( style );
-            }
-        }
-    }
+				return def.name == def.getStyleValue( style );
+			}
+		}
+	}
 });
