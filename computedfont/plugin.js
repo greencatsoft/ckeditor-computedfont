@@ -300,7 +300,7 @@
             // Gets the list of fonts from the settings.
 			var names = config.font_names.split( ';' );
             var sizes = config.fontSize_sizes.split( ';' ).map( function( v ) {
-            	return [ v, '/', v, config.fontSize_unit ].join( '' ) } );
+            	return [ v, '/', v ].join( '' ) } );
 
 			addCombo( editor, 'Font', 'family', editor.lang.computedfont, names, config.font_defaultLabel, config.font_style, 30 );
 			addCombo( editor, 'FontSize', 'size', editor.lang.computedfont.fontSize, sizes, config.fontSize_defaultLabel, config.fontSize_style, 40 );
@@ -386,14 +386,12 @@ CKEDITOR.config.font_style = {
  * The list of fonts size to be displayed in the Font Size combo in the
  * toolbar. Entries are separated by semi-colons (`';'`).
  *
- * Numeric values are allowed which will be suffixed with the unit specified
- * in CKEDITOR.config.fontSize_unit (defaults to 'px').
+ * Numeric values are allowed which will be suffixed with the 'px' in runtime.
  *
  * @cfg {String} [fontSize_sizes=see source]
  * @member CKEDITOR.config
  */
 CKEDITOR.config.fontSize_sizes = '8;9;10;11;12;14;16;18;20;22;24;26;28;36;48;72';
-CKEDITOR.config.fontSize_unit = 'px';
 
 /**
  * The text to be displayed in the Font Size combo is none of the available
@@ -429,11 +427,7 @@ CKEDITOR.config.fontSize_style = {
     getStyleValue: function( style ) {
         var size = style.fontSize;
 
-        if ( !size || !size.endsWith( CKEDITOR.config.fontSize_unit ) ) {
-            return undefined;
-        }
-
-        return size.substring( 0, size.length - CKEDITOR.config.fontSize_unit.length );
+        return CKEDITOR.tools.convertToPx( size );
     }
 };
 
