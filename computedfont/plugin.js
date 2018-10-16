@@ -233,7 +233,7 @@
 
                     if ( elements.length > 0 ) {
                         var element = elements[ 0 ];
-                        var style = element.getComputedStyle();
+                        var style = getComputedStyle(element.$);
 
                         // Check if the element is removable by any of
                         // the styles.
