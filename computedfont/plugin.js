@@ -359,6 +359,44 @@ CKEDITOR.config.font_defaultLabel = '';
 CKEDITOR.config.font_blockWhileLoadingFont = false;
 
 /**
+ * Set true to use font detection to determine actual rendered font used when 
+ * a font set is specified (i.e. 'Arial, Helvetica, sans-serif').
+ *
+ * @cfg {Boolean} [font_detect=true]
+ * @member CKEDITOR.config
+ */
+CKEDITOR.config.font_detect = true;
+
+/**
+ * Text to use for detecting rendered font family.
+ *
+ * @cfg {Boolean} [font_detect_pangram=see example]
+ * @member CKEDITOR.config
+ */
+CKEDITOR.config.font_detect_pangram = 
+	'Nymphsblitzquickvexdwarfjog' + 
+	'012345!@#$%^&* ' + 
+	'키스의고유조건은입술끼리만나야하고' + 
+	'いろはにほへとちりぬるを わかよたれそ' + 
+	'視野無限廣窗外有藍天微風迎客軟語伴茶';
+
+/**
+ * Font size to use for detecting rendered font family.
+ *
+ * @cfg {Boolean} [font_detect_size=72]
+ * @member CKEDITOR.config
+ */
+CKEDITOR.config.font_detect_size = 72;
+
+/**
+ * Fallback font to use for detecting rendered font family.
+ *
+ * @cfg {Boolean} [font_detect_fallback='monospace']
+ * @member CKEDITOR.config
+ */
+CKEDITOR.config.font_detect_fallback = 'monospace';
+
+/**
  * The style definition to be used to apply the font in the text.
  *
  *		// This is actually the default value for it.
@@ -378,8 +416,49 @@ CKEDITOR.config.font_style = {
 		element: 'font', attributes: { 'face': null }
 	} ],
     getStyleValue: function( style ) {
+   		var fontset = style.fontFamily.split( ',' );
+
+    	if ( fontset.length > 1 ) {
+			return CKEDITOR.config.font_detect ? this.detectFont( fontset ) : fontset[ 0 ];
+    	}
+
         return style.fontFamily;
-    }
+    },
+	detectFont: function( candidates ) {
+		// Adapted from https://www.kirupa.com/html5/detect_whether_font_is_installed.htm
+
+		if ( !Array.isArray( candidates ) || candidates.length == 0 ) {
+			return undefined;
+		}
+
+		var canvas = document.createElement( 'canvas' );
+		var context = canvas.getContext( '2d' );
+
+		var text = CKEDITOR.config.font_detect_pangram;
+		var size = CKEDITOR.config.font_detect_size;
+		var fallback = CKEDITOR.config.font_detect_fallback;
+
+		function matches( font ) {
+			font = font.trim().replace( '"', '' ).replace( '\'', '' );
+
+			context.font = [size, 'px ', fallback].join( '' );
+
+			var baseline = context.measureText(text).width;
+     
+			context.font = [size, 'px "', font, '", ', fallback].join( '' );
+
+	    	var actual = context.measureText(text).width;
+
+			return baseline != actual;
+		}
+
+		for ( i in candidates ) {
+			var font = candidates[ i ];
+			if ( matches(font) ) return font;
+		}
+
+		return candidates[ candidates.length - 1 ];
+	}
 };
 
 /**
