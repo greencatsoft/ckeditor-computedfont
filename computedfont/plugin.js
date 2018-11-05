@@ -422,7 +422,7 @@ CKEDITOR.config.font_style = {
 			return CKEDITOR.config.font_detect ? this.detectFont( fontset ) : fontset[ 0 ];
 		}
 
-		return style.fontFamily;
+		return style.fontFamily.replace(/['"]/g, '');
 	},
 	detectFont: function( candidates ) {
 		// Adapted from https://www.kirupa.com/html5/detect_whether_font_is_installed.htm
