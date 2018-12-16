@@ -240,7 +240,7 @@
 						for ( var value in styles ) {
 							if ( styles[ value ].checkStyleMatch( element, style, true, editor ) ) {
 								if ( value != currentValue )
-									this.setValue( value );
+									this.setValue( '', value );
 								return;
 							}
 						}
@@ -300,7 +300,7 @@
 			// Gets the list of fonts from the settings.
 			var names = config.font_names.split( ';' );
 			var sizes = config.fontSize_sizes.split( ';' ).map( function( v ) {
-				return [ v, '/', v ].join( '' ) } );
+				return [ v + 'px', '/', v ].join( '' ) } );
 
 			addCombo( editor, 'Font', 'family', editor.lang.computedfont, names, config.font_defaultLabel, config.font_style, 30 );
 			addCombo( editor, 'FontSize', 'size', editor.lang.computedfont.fontSize, sizes, config.fontSize_defaultLabel, config.fontSize_style, 40 );
@@ -506,7 +506,7 @@ CKEDITOR.config.fontSize_style = {
 	getStyleValue: function( style ) {
 		var size = style.fontSize;
 
-		return CKEDITOR.tools.convertToPx( size );
+		return CKEDITOR.tools.convertToPx( size ) + 'px';
 	}
 };
 
