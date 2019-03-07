@@ -11,7 +11,7 @@
  * https://github.com/ckeditor/ckeditor-dev/blob/master/plugins/font/plugin.js
  */
 ( function() {
-	function addCombo( editor, comboName, styleType, lang, names, defaultLabel, styleDefinition, order ) {
+	function addCombo( editor, comboName, styleType, lang, names, defaultLabel, styleDefinition, order, previews ) {
 		var config = editor.config,
 			style = new CKEDITOR.computedStyle( styleDefinition ),
 			values = [],
@@ -103,7 +103,15 @@
 				for ( var i = 0; i < names.length; i++ ) {
 					name = names[ i ];
 					// Add the tag entry to the panel list.
-					this.add( name, styles[ name ].buildPreview(), name );
+					var preview;
+
+					if (previews !== undefined && previews[ name ] !== undefined) {
+						preview = "<img src='" + previews[ name ] + "' style='padding: 0; margin: 0; margin-bottom: -4px; outline: none;' />";
+					} else {
+						preview = styles[ name ].buildPreview();
+					}
+
+					this.add( name, preview, name );
 				}
 			},
 
@@ -302,7 +310,7 @@
 			var sizes = config.fontSize_sizes.split( ';' ).map( function( v ) {
 				return [ v + 'px', '/', v ].join( '' ) } );
 
-			addCombo( editor, 'Font', 'family', editor.lang.computedfont, names, config.font_defaultLabel, config.font_style, 30 );
+			addCombo( editor, 'Font', 'family', editor.lang.computedfont, names, config.font_defaultLabel, config.font_style, 30, config.font_images );
 			addCombo( editor, 'FontSize', 'size', editor.lang.computedfont.fontSize, sizes, config.fontSize_defaultLabel, config.fontSize_style, 40 );
 		}
 	} );
@@ -337,6 +345,8 @@ CKEDITOR.config.font_names = 'Arial/Arial, Helvetica, sans-serif;' +
 	'Times New Roman/Times New Roman, Times, serif;' +
 	'Trebuchet MS/Trebuchet MS, Helvetica, sans-serif;' +
 	'Verdana/Verdana, Geneva, sans-serif';
+
+CKEDITOR.config.font_images = {};
 
 /**
  * The text to be displayed in the Font combo is none of the available values
