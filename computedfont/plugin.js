@@ -106,7 +106,7 @@
 					var preview;
 
 					if (previews !== undefined && previews[ name ] !== undefined) {
-						preview = "<img src='" + previews[ name ] + "' style='padding: 0; margin: 0; margin-bottom: -4px; outline: none;' />";
+						preview = "<img src='" + previews[ name ] + "' />";
 					} else {
 						preview = styles[ name ].buildPreview();
 					}
