@@ -248,7 +248,7 @@
 						for ( var value in styles ) {
 							if ( styles[ value ].checkStyleMatch( element, style, true, editor ) ) {
 								if ( value != currentValue )
-									this.setValue( '', value );
+									this.setValue( value );
 								return;
 							}
 						}
@@ -426,7 +426,7 @@ CKEDITOR.config.font_style = {
 		element: 'font', attributes: { 'face': null }
 	} ],
 	getStyleValue: function( style ) {
-   		var fontset = style.fontFamily.split( ',' );
+		var fontset = style.fontFamily.split( ',' ).map(Function.prototype.call, String.prototype.trim);
 
 		if ( fontset.length > 1 ) {
 			return CKEDITOR.config.font_detect ? this.detectFont( fontset ) : fontset[ 0 ];
