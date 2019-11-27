@@ -36,6 +36,9 @@
 			}
 		}
 
+		var sizePattern = /([0-9]+)([^0-9]*)/;
+		var sizeFormat = new Intl.NumberFormat( 'en-US', CKEDITOR.config.font_scale_number_format );
+
 		editor.ui.addRichCombo( comboName, {
 			label: lang.label,
 			title: lang.panelTitle,
@@ -232,38 +235,71 @@
 				editor.fire( 'saveSnapshot' );
 			},
 
-			onRender: function() {
-				editor.on( 'selectionChange', function( ev ) {
-					var currentValue = this.getValue();
 
-					var elementPath = ev.data.path,
-						elements = elementPath.elements;
+			updateValue: function() {
+				var currentValue = this.getValue();
 
-					if ( elements.length > 0 ) {
-						var element = elements[ 0 ];
-						var style = getComputedStyle(element.$);
+				var path = editor.elementPath();
+				var elements = path ? path.elements : undefined;
 
-						// Check if the element is removable by any of
-						// the styles.
-						for ( var value in styles ) {
-							if ( styles[ value ].checkStyleMatch( element, style, true, editor ) ) {
-								if ( value != currentValue )
-									this.setValue( value );
-								return;
+				if ( elements && elements.length > 0 ) {
+					var element = elements[ 0 ];
+					var computed = getComputedStyle(element.$);
+
+					function getScaledFontSize( value ) {
+						var parsed = parseFontSize( computed['font-size'] );
+
+						if ( !parsed ) return value;
+
+						var effective = parsed.size * editor.getFontScale();
+
+						return sizeFormat.format( effective ) + parsed.unit;
+					}
+
+					// Check if the element is removable by any of
+					// the styles.
+					for ( var value in styles ) {
+						var style = styles[ value ];
+
+						if ( style.checkStyleMatch( element, computed, true, editor ) ) {
+							if ( value != currentValue ) {
+								if ( comboName == 'FontSize' && CKEDITOR.config.font_scale ) {
+									value = getScaledFontSize();
+								}
+
+								this.setValue( value );
 							}
-						}
 
-						var value = styleDefinition.getStyleValue( style );
-
-						if ( value ) {
-							this.setValue( '', value );
 							return;
 						}
 					}
 
-					// If no styles match, just empty it.
-					this.setValue( '', defaultLabel );
-				}, this );
+					var value = styleDefinition.getStyleValue( computed, editor );
+
+
+					if ( value ) {
+						if ( comboName == 'FontSize' && CKEDITOR.config.font_scale ) {
+							value = getScaledFontSize();
+						}
+
+						this.setValue( '', value );
+
+						return;
+					}
+				}
+
+				// If no styles match, just empty it.
+				this.setValue( '', defaultLabel );
+			},
+
+			onRender: function() {
+				if ( CKEDITOR.config.font_scale && comboName == 'FontSize' ) {
+					var combo = this;
+
+					editor.on( 'fontScaleChange', function( evt ) { combo.updateValue(); } );
+				}
+
+				editor.on( 'selectionChange', this.updateValue, this );
 			},
 
 			refresh: function() {
@@ -314,6 +350,66 @@
 			addCombo( editor, 'FontSize', 'size', editor.lang.computedfont.fontSize, sizes, config.fontSize_defaultLabel, config.fontSize_style, 40 );
 		}
 	} );
+
+	var fontSizePattern = /(font-size:\s*)?([0-9\.]+)([a-z]*);?/;
+
+	function parseFontSize( value ) {
+		var tokens = fontSizePattern.exec( value );
+
+		if ( !tokens || tokens.length < 4 ) return;
+
+		return { size: parseFloat( tokens[2] ), unit: tokens[3] };
+	}
+
+	CKEDITOR.editor.prototype.getFontScale = function () {
+		return CKEDITOR.config.font_scale ? ( this._.fontScale || 1 ) : 1;
+	};
+
+	CKEDITOR.editor.prototype.setFontScale = function ( value ) {
+		this._.fontScale = value;
+		this.fire( 'fontScaleChange', this, value );
+	};
+
+	CKEDITOR.computedStyle = CKEDITOR.tools.createClass({
+		base: CKEDITOR.style,
+		$: function( styleDefinition, variablesValues ) {
+			this.base( styleDefinition, variablesValues );
+
+			this._apply = CKEDITOR.style.prototype.apply.bind( this );
+		},
+		proto: {
+			checkStyleMatch: function( element, style, fullMatch, editor ) {
+				if (this.checkElementMatch( element, fullMatch, editor )) {
+					return true;
+				} else {
+					var def = this._.definition;
+
+					return def.name == def.getStyleValue( style, editor );
+				}
+			},
+			apply: function( editor ) {
+				if ( this._.definition.styles['font-size'] ) {
+					var value = parseFontSize( this._.definition._ST );
+
+					if ( value ) {
+						var effective = value.size / editor.getFontScale();
+
+						var currentStyle = this._.definition._ST;
+
+						this._.definition._ST = [ 'font-size: ', effective, value.unit ].join('');
+
+						this._apply( editor );
+
+						this._.definition._ST = currentStyle;
+					} else {
+						this._apply( editor );
+					}
+				} else {
+					this._apply( editor );
+				}
+			}
+		}
+	});
 } )();
 
 /**
@@ -407,6 +503,25 @@ CKEDITOR.config.font_detect_size = 72;
 CKEDITOR.config.font_detect_fallback = 'monospace';
 
 /**
+ * Whether or not to use adjust displayed font sizes according to 
+ * viewport scale value (can be changed via 'setFontScale' editor command).
+ *
+ * @cfg {Boolean} [font_scale=false]
+ * @member CKEDITOR.config
+ */
+
+CKEDITOR.config.font_scale = true;
+
+/**
+ * Options object used to format font size values when 'font_scale' is enabled.
+ * For details, please see specification for Intl.NumberFormat calss.
+ *
+ * @cfg {Object} [font_scale_number_format=see example]
+ * @member CKEDITOR.config
+ */
+CKEDITOR.config.font_scale_number_format = { maximumFractionDigits: 1 };
+
+/**
  * The style definition to be used to apply the font in the text.
  *
  *		// This is actually the default value for it.
@@ -425,7 +540,7 @@ CKEDITOR.config.font_style = {
 	overrides: [ {
 		element: 'font', attributes: { 'face': null }
 	} ],
-	getStyleValue: function( style ) {
+	getStyleValue: function( style, editor ) {
 		var fontset = style.fontFamily.split( ',' ).map(Function.prototype.call, String.prototype.trim);
 
 		if ( fontset.length > 1 ) {
@@ -513,27 +628,7 @@ CKEDITOR.config.fontSize_style = {
 	overrides: [ {
 		element: 'font', attributes: { 'size': null }
 	} ],
-	getStyleValue: function( style ) {
-		var size = style.fontSize;
-
-		return CKEDITOR.tools.convertToPx( size ) + 'px';
+	getStyleValue: function( style, editor ) {
+		return CKEDITOR.tools.convertToPx( style.fontSize ) + 'px';
 	}
 };
-
-CKEDITOR.computedStyle = CKEDITOR.tools.createClass({
-	base: CKEDITOR.style,
-	$: function( styleDefinition, variablesValues ) {
-		this.base( styleDefinition, variablesValues );
-	},
-	proto: {
-		checkStyleMatch: function( element, style, fullMatch, editor ) {
-			if (this.checkElementMatch( element, fullMatch, editor )) {
-				return true;
-			} else {
-				var def = this._.definition;
-
-				return def.name == def.getStyleValue( style );
-			}
-		}
-	}
-});
