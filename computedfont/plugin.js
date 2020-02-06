@@ -136,18 +136,19 @@
 						editor.fire( 'fontLoading', { font: style._.definition.name } );
 
 						CKEDITOR.tools.setTimeout( function() {
-							editor.setReadOnly( true );
+							if ( editor.editable() ) editor.setReadOnly( true );
 
 							document.fonts.load( font ).then(
 								function() {
-									editor.setReadOnly( false );
+									if ( editor.editable() ) {
+										editor.setReadOnly( false );
 
-									that.applyStyle( style, previousStyle, isDefault );
-
+										that.applyStyle( style, previousStyle, isDefault );
+									}
 									editor.fire( 'fontLoaded', { font: style._.definition.name } );
 								},
 								function() {
-									editor.setReadOnly( false );
+									if ( editor.editable() ) editor.setReadOnly( false );
 
 									editor.fire( 'fontLoadingFailed', { font: style._.definition.name } );
 								}).finally(
