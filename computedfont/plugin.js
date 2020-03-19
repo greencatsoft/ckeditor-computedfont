@@ -116,6 +116,10 @@
 
 					this.add( name, preview, name );
 				}
+
+				if ( CKEDITOR.config.font_scale && comboName == 'FontSize' ) {
+					setTimeout( this.updateItems.bind(this), 100 );
+				}
 			},
 
 			onClick: function( value ) {
@@ -236,7 +240,6 @@
 				editor.fire( 'saveSnapshot' );
 			},
 
-
 			updateValue: function() {
 				var currentValue = this.getValue();
 
@@ -252,7 +255,7 @@
 
 						if ( !parsed ) return value;
 
-						var effective = parsed.size * editor.getFontScale();
+						var effective = Math.max( parsed.size * editor.getFontScale(), 10 );
 
 						return sizeFormat.format( effective ) + parsed.unit;
 					}
@@ -297,10 +300,30 @@
 				if ( CKEDITOR.config.font_scale && comboName == 'FontSize' ) {
 					var combo = this;
 
-					editor.on( 'fontScaleChange', function( evt ) { combo.updateValue(); } );
+					editor.on( 'fontScaleChange', function( evt ) {
+						combo.updateItems();
+						combo.updateValue();
+					} );
 				}
 
 				editor.on( 'selectionChange', this.updateValue, this );
+			},
+
+			updateItems: function() {
+				if (this._.list) {
+					var scale = editor.getFontScale();
+
+					this.showAll();
+
+					for ( var value in styles ) {
+						var style = styles[ value ];
+						var data = parseFontSize(value);
+
+						if ( data && data.size < scale * 10 ) {
+							this.hideItem( value );
+						}
+					}
+				}
 			},
 
 			refresh: function() {
