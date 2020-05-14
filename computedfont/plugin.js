@@ -103,18 +103,23 @@
 				// Add `(Default)` item as a first element on the drop-down list.
 				this.add( this.defaultValue, defaultText, defaultText );
 
+                var showPreview = comboName === 'Font' && CKEDITOR.config.font_preview !== false || 
+                    comboName === 'FontSize' && CKEDITOR.config.fontSize_preview !== false;
+
 				for ( var i = 0; i < names.length; i++ ) {
 					name = names[ i ];
 					// Add the tag entry to the panel list.
 					var preview;
 
-					if (previews !== undefined && previews[ name ] !== undefined) {
-						preview = "<img src='" + previews[ name ] + "' />";
-					} else {
-						preview = styles[ name ].buildPreview();
-					}
+                    if ( showPreview ) {
+	    				if (previews !== undefined && previews[ name ] !== undefined) {
+    						preview = "<img src='" + previews[ name ] + "' />";
+					    } else {
+						    preview = styles[ name ].buildPreview();
+					    }
+                    }
 
-					this.add( name, preview, name );
+					this.add( name, preview || name, name );
 				}
 
 				if ( CKEDITOR.config.font_scale && comboName == 'FontSize' ) {
@@ -611,6 +616,14 @@ CKEDITOR.config.font_style = {
 };
 
 /**
+ * Determines whether or not to show font previews in the combo items.
+ *
+ * @cfg {String} [font_preview=see source]
+ * @member CKEDITOR.config
+ */
+CKEDITOR.config.font_preview = true;
+
+/**
  * The list of fonts size to be displayed in the Font Size combo in the
  * toolbar. Entries are separated by semi-colons (`';'`).
  *
@@ -656,3 +669,12 @@ CKEDITOR.config.fontSize_style = {
 		return CKEDITOR.tools.convertToPx( style.fontSize ) + 'px';
 	}
 };
+
+/**
+ * Determines whether or not to show font size previews in the combo items.
+ *
+ * @cfg {String} [fontSize_preview=see source]
+ * @member CKEDITOR.config
+ */
+CKEDITOR.config.fontSize_preview = true;
+
