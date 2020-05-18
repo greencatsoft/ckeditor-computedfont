@@ -103,8 +103,8 @@
 				// Add `(Default)` item as a first element on the drop-down list.
 				this.add( this.defaultValue, defaultText, defaultText );
 
-                var showPreview = comboName === 'Font' && CKEDITOR.config.font_preview !== false || 
-                    comboName === 'FontSize' && CKEDITOR.config.fontSize_preview !== false;
+                var showPreview = comboName === 'Font' && editor.config.font_preview !== false || 
+                    comboName === 'FontSize' && editor.config.fontSize_preview !== false;
 
 				for ( var i = 0; i < names.length; i++ ) {
 					name = names[ i ];
@@ -122,7 +122,7 @@
 					this.add( name, preview || name, name );
 				}
 
-				if ( CKEDITOR.config.font_scale && comboName == 'FontSize' ) {
+				if ( editor.config.font_scale && comboName == 'FontSize' ) {
 					setTimeout( this.updateItems.bind(this), 100 );
 				}
 			},
@@ -253,17 +253,7 @@
 
 				if ( elements && elements.length > 0 ) {
 					var element = elements[ 0 ];
-					var computed = getComputedStyle(element.$);
-
-					function getScaledFontSize( value ) {
-						var parsed = parseFontSize( computed['font-size'] );
-
-						if ( !parsed ) return value;
-
-						var effective = Math.max( parsed.size * editor.getFontScale(), 10 );
-
-						return sizeFormat.format( effective ) + parsed.unit;
-					}
+					var computed = getComputedStyle( element.$ );
 
 					// Check if the element is removable by any of
 					// the styles.
@@ -272,8 +262,8 @@
 
 						if ( style.checkStyleMatch( element, computed, true, editor ) ) {
 							if ( value != currentValue ) {
-								if ( comboName == 'FontSize' && CKEDITOR.config.font_scale ) {
-									value = getScaledFontSize();
+								if ( comboName == 'FontSize' && editor.config.font_scale ) {
+									value = this.getScaledFontSize( computed );
 								}
 
 								this.setValue( value );
@@ -285,10 +275,9 @@
 
 					var value = styleDefinition.getStyleValue( computed, editor );
 
-
 					if ( value ) {
-						if ( comboName == 'FontSize' && CKEDITOR.config.font_scale ) {
-							value = getScaledFontSize();
+						if ( comboName == 'FontSize' && editor.config.font_scale ) {
+							value = this.getScaledFontSize( computed );
 						}
 
 						this.setValue( '', value );
@@ -302,7 +291,7 @@
 			},
 
 			onRender: function() {
-				if ( CKEDITOR.config.font_scale && comboName == 'FontSize' ) {
+				if ( editor.config.font_scale && comboName == 'FontSize' ) {
 					var combo = this;
 
 					editor.on( 'fontScaleChange', function( evt ) {
@@ -311,7 +300,13 @@
 					} );
 				}
 
-				editor.on( 'selectionChange', this.updateValue, this );
+				editor.on( 'selectionChange', function() {
+					if ( comboName == 'FontSize' && editor.config.fontSize_dynamicSizes ) {
+						this.updateItems();
+					}
+
+					this.updateValue();
+				}, this );
 			},
 
 			updateItems: function() {
@@ -320,15 +315,84 @@
 
 					this.showAll();
 
+                    var currentValue = this.getScaledFontSize();
+					var currentSize = currentValue ? parseFontSize( currentValue ).size : undefined;
+
+					var closestItem = {};
+					var hiddenItems = new Array();
+
+					var i = 0;
+					var distances = {};
+					var dynamic = editor.config.fontSize_dynamicSizes;
+
 					for ( var value in styles ) {
 						var style = styles[ value ];
-						var data = parseFontSize(value);
+						var data = parseFontSize( value );
 
-						if ( data && data.size < scale * 10 ) {
-							this.hideItem( value );
+						var hidden = editor.config.font_scale && data && data.size < scale * 10;
+
+						hiddenItems[ i ] = hidden;
+
+						if ( dynamic && !hidden ) {
+							var diff = Math.abs( data.size - currentSize );
+
+							distances[value] = diff;
+
+							if ( closestItem.diff === undefined || closestItem.diff > diff ) {
+								closestItem.index = i;
+								closestItem.diff = diff;
+							}
 						}
+
+						i++;
+					}
+
+					i = 0;
+
+					var closestIndex = dynamic ? closestItem.index : undefined;
+					var step = dynamic ? dynamic.step || 10 : undefined;
+					var lastDistance;
+
+					for ( var value in styles ) {
+						if ( hiddenItems[ i ] || closestIndex ) {
+							var dist = distances[value];
+
+							function factor() {
+								return parseInt( dist / step ) + 1;
+							}
+
+							if ( !hiddenItems[i] && ( !lastDistance || Math.abs( lastDistance - dist ) >= factor() )) {
+								lastDistance = dist;
+							} else {
+								this.hideItem( value );
+							}
+						}
+
+						i++;
 					}
 				}
+			},
+
+			getScaledFontSize: function( computed ) {
+				if ( !computed ) {
+					var path = editor.elementPath();
+					var elements = path ? path.elements : undefined;
+
+					if ( elements && elements.length > 0 ) {
+						var element = elements[ 0 ];
+						computed = getComputedStyle( element.$ );
+					} else {
+						return undefined;
+					}
+				}
+
+				var parsed = parseFontSize( computed[ 'font-size' ] );
+
+				if ( !parsed ) return undefined;
+
+				var effective = Math.max( parsed.size * editor.getFontScale(), 10 );
+
+				return sizeFormat.format( effective ) + parsed.unit;
 			},
 
 			refresh: function() {
@@ -372,8 +436,20 @@
 
 			// Gets the list of fonts from the settings.
 			var names = config.font_names.split( ';' );
-			var sizes = config.fontSize_sizes.split( ';' ).map( function( v ) {
-				return [ v + 'px', '/', v ].join( '' ) } );
+
+			var sizeSource;
+
+			if ( config.fontSize_dynamicSizes ) {
+				var from = config.fontSize_dynamicSizes.min || 8;
+				var to = config.fontSize_dynamicSizes.max || 200;
+				var step = config.fontSize_dynamicSizes.step || 10;
+
+				sizeSource = Array.apply( 0, Array( to - from ) ).map( function( v, i ) { return i + from; } );
+			} else {
+				sizeSource = config.fontSize_sizes.split( ';' );
+			}
+
+			var sizes = sizeSource.map( function( v ) { return [ v + 'px', '/', v ].join( '' ) } );
 
 			addCombo( editor, 'Font', 'family', editor.lang.computedfont, names, config.font_defaultLabel, config.font_style, 30, config.font_images );
 			addCombo( editor, 'FontSize', 'size', editor.lang.computedfont.fontSize, sizes, config.fontSize_defaultLabel, config.fontSize_style, 40 );
@@ -391,7 +467,7 @@
 	}
 
 	CKEDITOR.editor.prototype.getFontScale = function () {
-		return CKEDITOR.config.font_scale ? ( this._.fontScale || 1 ) : 1;
+		return this.config.font_scale ? ( this._.fontScale || 1 ) : 1;
 	};
 
 	CKEDITOR.editor.prototype.setFontScale = function ( value ) {
@@ -417,8 +493,10 @@
 				}
 			},
 			apply: function( editor ) {
-				if ( this._.definition.styles['font-size'] ) {
-					var value = parseFontSize( this._.definition._ST );
+				var displayValue = this._.definition.styles[ 'font-size' ];
+
+				if ( displayValue ) {
+					var value = parseFontSize( displayValue );
 
 					if ( value ) {
 						var effective = value.size / editor.getFontScale();
@@ -676,5 +754,17 @@ CKEDITOR.config.fontSize_style = {
  * @cfg {String} [fontSize_preview=see source]
  * @member CKEDITOR.config
  */
-CKEDITOR.config.fontSize_preview = true;
+CKEDITOR.config.fontSize_preview = false;
 
+/**
+ * When specified, the font size list will dynamically adjust to the size of the 
+ * currently selected text. 
+ * 
+ * The value expects an object with "min", "max", and "step" property, meaning 
+ * the minimum and maximum font size, and the number of items to show per each interval, 
+ * respectively..
+ *
+ * @cfg {String} [fontSize_dynamicSizes=see source]
+ * @member CKEDITOR.config
+ */
+CKEDITOR.config.fontSize_dynamicSizes = {min: 8, max: 200, step: 10};
