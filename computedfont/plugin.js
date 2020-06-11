@@ -742,7 +742,7 @@ CKEDITOR.config.fontSize_style = {
 	styles: { 'font-size': '#(size)px' },
 	overrides: [ {
 		element: 'font', attributes: { 'size': null }
-	} ],
+	}, { attributes: { 'data-font-size': null }} ],
 	getStyleValue: function( style, editor ) {
 		return CKEDITOR.tools.convertToPx( style.fontSize ) + 'px';
 	}
