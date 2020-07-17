@@ -175,38 +175,63 @@
 				editor.focus();
 				editor.fire( 'saveSnapshot' );
 
-				var range,
-					path,
-					matching,
-					startBoundary,
-					endBoundary,
-					node,
-					bm;
+				var range = editor.getSelection().getRanges()[ 0 ];
+				var path = editor.elementPath();
+
+				// Find the style element.
+				var matching, startBoundary, endBoundary;
+
+				if ( !range.collapsed ) {
+					var blocks = [], block, it = range.createIterator();
+
+					while ( block = it.getNextParagraph() ) {
+						blocks.push( block );
+					}
+
+					if ( blocks.length > 0 ) {
+						startBoundary = range.checkBoundaryOfElement( blocks[ 0 ], CKEDITOR.START );
+						endBoundary = range.checkBoundaryOfElement( blocks[ blocks.length - 1 ], CKEDITOR.END );
+					}
+
+					if ( !startBoundary ) {
+						blocks = blocks.slice( 1 );
+					}
+
+					if ( !endBoundary ) {
+						blocks = blocks.slice( 0, blocks.length - 1 );
+					}
+
+					for ( var i = 0; i < blocks.length; i++ ) {
+						blocks[ i ].$.removeAttribute( "class" );
+					}
+				}
+
+				if ( previousStyle ) {
+					matching = path.contains( function( el ) {
+						return previousStyle.checkElementRemovable( el );
+					} );
+				}
+
+				if ( matching ) {
+					startBoundary = range.checkBoundaryOfElement( matching, CKEDITOR.START );
+					endBoundary = range.checkBoundaryOfElement( matching, CKEDITOR.END );
+				}
 
 				// When applying one style over another, first remove the previous one (https://dev.ckeditor.com/ticket/12403).
 				// NOTE: This is only a temporary fix. It will be moved to the styles system (https://dev.ckeditor.com/ticket/12687).
 				if ( previousStyle ) {
-					range = editor.getSelection().getRanges()[ 0 ];
-
 					// If the range is collapsed we can't simply use the editor.removeStyle method
 					// because it will remove the entire element and we want to split it instead.
 					if ( range.collapsed ) {
-						path = editor.elementPath();
-						// Find the style element.
-						matching = path.contains( function( el ) {
-							return previousStyle.checkElementRemovable( el );
-						} );
-
 						if ( matching ) {
-							startBoundary = range.checkBoundaryOfElement( matching, CKEDITOR.START );
-							endBoundary = range.checkBoundaryOfElement( matching, CKEDITOR.END );
-
 							// If we are at both boundaries it means that the element is empty.
 							// Remove it but in a way that we won't lose other empty inline elements inside it.
 							// Example: <p>x<span style="font-size:48px"><em>[]</em></span>x</p>
 							// Result: <p>x<em>[]</em>x</p>
 							if ( startBoundary && endBoundary ) {
-								bm = range.createBookmark();
+								var node;
+								var bm = range.createBookmark();
+
 								// Replace the element with its children (TODO element.replaceWithChildren).
 								while ( ( node = matching.getFirst() ) ) {
 									node.insertBefore( matching );
