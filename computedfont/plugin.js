@@ -135,7 +135,7 @@
 
 				if ( style && comboName == 'Font' && editor.config.font_blockWhileLoadingFont ) {
 					// Use an arbitrary font size to check if the font is loaded.
-					var font = '12pt ' + style._.definition.name;
+					var font = "12pt '" + style._.definition.name + "'";
 
 					if ( document.fonts.check( font ) ) {
 						this.applyStyle( style, previousStyle, isDefault );
@@ -668,7 +668,7 @@ CKEDITOR.config.font_scale_number_format = { maximumFractionDigits: 1 };
  */
 CKEDITOR.config.font_style = {
 	element: 'span',
-	styles: { 'font-family': '#(family)' },
+	styles: { 'font-family': "'#(family)'" },
 	overrides: [ {
 		element: 'font', attributes: { 'face': null }
 	} ],
