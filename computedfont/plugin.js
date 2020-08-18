@@ -181,7 +181,7 @@
 				// Find the style element.
 				var matching, startBoundary, endBoundary;
 
-				if ( !range.collapsed ) {
+				if ( comboName == 'FontSize' && !range.collapsed ) {
 					var blocks = [], block, it = range.createIterator();
 
 					while ( block = it.getNextParagraph() ) {
