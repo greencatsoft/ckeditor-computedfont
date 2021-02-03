@@ -36,6 +36,29 @@
 			}
 		}
 
+		editor.on( 'beforeRemovingBlockStyle', function( e ) {
+			if ( e.data.comboName != comboName ) {
+				var computedStyle = getComputedStyle(e.data.block.$);
+				var range = editor.createRange();
+
+				range.setStartBefore( e.data.block );
+				range.setEndAfter( e.data.block );
+				range.optimize();
+
+				var style;
+
+				if ( comboName == 'Font' ) {
+					style = new CKEDITOR.computedStyle( styleDefinition, { 'family': computedStyle[ 'font-family' ] } );
+				} else {
+					var value = CKEDITOR.tools.convertToPx( computedStyle[ 'font-size' ] );
+					style = new CKEDITOR.computedStyle( styleDefinition, { 'size': value } );
+				}
+
+				style.removeFromRange( range, editor );
+				style.applyToRange( range, editor );
+			}
+		});
+
 		var sizePattern = /([0-9]+)([^0-9]*)/;
 		var sizeFormat = new Intl.NumberFormat( 'en-US', CKEDITOR.config.font_scale_number_format );
 
@@ -181,7 +204,7 @@
 				// Find the style element.
 				var matching, startBoundary, endBoundary;
 
-				if ( comboName == 'FontSize' && !range.collapsed ) {
+				if ( !range.collapsed ) {
 					var blocks = [], block, it = range.createIterator();
 
 					while ( block = it.getNextParagraph() ) {
@@ -189,6 +212,17 @@
 					}
 
 					if ( blocks.length > 0 ) {
+						for ( var i = 0; i < blocks.length; i++ ) {
+							var block = blocks[ i ];
+
+							if ( block.hasAttribute( 'class' ) ) {
+							    editor.fire( 'beforeRemovingBlockStyle', { comboName: comboName, block: block } );
+							    block.removeAttribute( 'class' );
+							}
+						}
+
+						range.select();
+
 						startBoundary = range.checkBoundaryOfElement( blocks[ 0 ], CKEDITOR.START );
 						endBoundary = range.checkBoundaryOfElement( blocks[ blocks.length - 1 ], CKEDITOR.END );
 					}
@@ -199,10 +233,6 @@
 
 					if ( !endBoundary ) {
 						blocks = blocks.slice( 0, blocks.length - 1 );
-					}
-
-					for ( var i = 0; i < blocks.length; i++ ) {
-						blocks[ i ].$.removeAttribute( "class" );
 					}
 				}
 
@@ -668,7 +698,7 @@ CKEDITOR.config.font_scale_number_format = { maximumFractionDigits: 1 };
  */
 CKEDITOR.config.font_style = {
 	element: 'span',
-	styles: { 'font-family': "'#(family)'" },
+	styles: { 'font-family': '#(family)' },
 	overrides: [ {
 		element: 'font', attributes: { 'face': null }
 	} ],
